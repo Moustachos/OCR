@@ -1,22 +1,28 @@
 <?php
 namespace App\Backend\Modules\News;
 
-use \OCFram\BackController;
-use \OCFram\HTTPRequest;
-use \Entity\News;
-use \Entity\Comment;
-use \FormBuilder\CommentFormBuilder;
-use \FormBuilder\NewsFormBuilder;
-use \OCFram\FormHandler;
+use Entity\Comment;
+use Entity\News;
+use FormBuilder\CommentFormBuilder;
+use FormBuilder\NewsFormBuilder;
+use OCFram\BackController;
+use OCFram\CacheUpdater;
+use OCFram\FormHandler;
+use OCFram\HTTPRequest;
 
 class NewsController extends BackController
 {
+  use CacheUpdater;
+
   public function executeDelete(HTTPRequest $request)
   {
     $newsId = $request->getData('id');
     
     $this->managers->getManagerOf('News')->delete($newsId);
     $this->managers->getManagerOf('Comments')->deleteFromNews($newsId);
+
+    // supprime les différents fichiers de cache liés à cette news (s'ils existent et sont activés)
+    $this->removeNewsCachesOf($this, $newsId);
 
     $this->app->user()->setFlash('La news a bien été supprimée !');
 
@@ -25,6 +31,9 @@ class NewsController extends BackController
 
   public function executeDeleteComment(HTTPRequest $request)
   {
+    // supprime les différents caches liés à ce commentaire (s'ils existent et sont activés)
+    $this->removeCommentCachesOf($this, $request->getData('id'));
+
     $this->managers->getManagerOf('Comments')->delete($request->getData('id'));
     
     $this->app->user()->setFlash('Le commentaire a bien été supprimé !');
@@ -82,6 +91,9 @@ class NewsController extends BackController
 
     if ($formHandler->process())
     {
+      // supprime les différents caches liés à ce commentaire (s'ils existent et sont activés)
+      $this->removeCommentCachesOf($this, $request->getData('id'));
+
       $this->app->user()->setFlash('Le commentaire a bien été modifié');
 
       $this->app->httpResponse()->redirect('/admin/');
@@ -127,6 +139,9 @@ class NewsController extends BackController
 
     if ($formHandler->process())
     {
+      // supprime les différents caches liés à cette news (s'ils existent et sont activés)
+      $this->removeNewsCachesOf($this, $request->getData('id'), $news->isNew());
+
       $this->app->user()->setFlash($news->isNew() ? 'La news a bien été ajoutée !' : 'La news a bien été modifiée !');
       
       $this->app->httpResponse()->redirect('/admin/');

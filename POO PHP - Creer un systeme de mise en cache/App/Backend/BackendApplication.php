@@ -7,9 +7,8 @@ class BackendApplication extends Application
 {
   public function __construct()
   {
-    parent::__construct();
-
     $this->name = 'Backend';
+    parent::__construct();
   }
 
   public function run()

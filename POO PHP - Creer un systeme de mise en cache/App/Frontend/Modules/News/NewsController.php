@@ -1,14 +1,17 @@
 <?php
 namespace App\Frontend\Modules\News;
 
-use \OCFram\BackController;
-use \OCFram\HTTPRequest;
-use \Entity\Comment;
-use \FormBuilder\CommentFormBuilder;
-use \OCFram\FormHandler;
+use Entity\Comment;
+use FormBuilder\CommentFormBuilder;
+use OCFram\BackController;
+use OCFram\CacheUpdater;
+use OCFram\FormHandler;
+use OCFram\HTTPRequest;
 
 class NewsController extends BackController
 {
+  use CacheUpdater;
+
   public function executeIndex(HTTPRequest $request)
   {
     $nombreNews = $this->app->config()->get('nombre_news');
@@ -22,8 +25,15 @@ class NewsController extends BackController
     
     $listeNews = $manager->getList(0, $nombreNews);
     
+    // récupère le gestionnaire de cache data pour les news
+    $handler = $this->app->getCacheHandlerOf('Data', 'News');
+
     foreach ($listeNews as $news)
     {
+      // si le cache data n'existe pas (ou s'il a expiré) pour cette news, il sera créé
+      if ($handler && is_null($handler->readCache($news->id())))
+        $handler->createCache($news, $news->id());
+
       if (strlen($news->contenu()) > $nombreCaracteres)
       {
         $debut = substr($news->contenu(), 0, $nombreCaracteres);
@@ -39,16 +49,20 @@ class NewsController extends BackController
   
   public function executeShow(HTTPRequest $request)
   {
-    $news = $this->managers->getManagerOf('News')->getUnique($request->getData('id'));
+    // récupère la news depuis le cache (si possible) ou depuis la base de données
+    $news = $this->getCacheOrLiveDataFor($this, 'News', $request->getData('id'));
     
     if (empty($news))
     {
       $this->app->httpResponse()->redirect404();
     }
     
+    // récupère la liste des commentaire depuis le cache (si possible) ou depuis la base de données
+    $comments = $this->getCacheOrLiveDataFor($this, 'Comment', $news->id());
+
     $this->page->addVar('title', $news->titre());
     $this->page->addVar('news', $news);
-    $this->page->addVar('comments', $this->managers->getManagerOf('Comments')->getListOf($news->id()));
+    $this->page->addVar('comments', $comments);
   }
 
   public function executeInsertComment(HTTPRequest $request)
@@ -76,6 +90,9 @@ class NewsController extends BackController
 
     if ($formHandler->process())
     {
+      // supprime les différents caches liés à ce commentaire (s'ils existent et sont activés)
+      $this->removeCommentCachesOf($this, $comment->id(), $comment->news());
+
       $this->app->user()->setFlash('Le commentaire a bien été ajouté, merci !');
       
       $this->app->httpResponse()->redirect('news-'.$request->getData('news').'.html');

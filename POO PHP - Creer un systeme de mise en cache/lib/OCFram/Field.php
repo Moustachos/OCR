@@ -39,12 +39,7 @@ abstract class Field
   {
     return $this->label;
   }
-  
-  public function length()
-  {
-    return $this->length;
-  }
-  
+
   public function name()
   {
     return $this->name;
@@ -65,16 +60,6 @@ abstract class Field
     if (is_string($label))
     {
       $this->label = $label;
-    }
-  }
-  
-  public function setLength($length)
-  {
-    $length = (int) $length;
-    
-    if ($length > 0)
-    {
-      $this->length = $length;
     }
   }
   

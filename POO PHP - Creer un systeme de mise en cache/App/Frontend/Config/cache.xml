@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+=============== DOCUMENTATION DU FICHIER DE CONFIGURATION DU SYSTEME DE MISE EN CACHE ===============
+
+Si la valeur de l'un des paramètres spécifiés dans la configuration est incorrecte, une exception sera levée lors du chargement.
+
+Lors du chargement, on considère que le dossier dans lequel se trouve le fichier de configuration détermine l'application pour laquelle ce type de cache sera défini.
+
+Exemple : un fichier cache.xml stocké dans App/Frontend/Config/ comme celui-ci gèrera le cache de l'application Frontend.
+
+Si le fichier cache.xml n'existe pas pour l'application en cours d'exécution, le script essaiera de trouver un fichier cache.xml pour l'application par défaut (Frontend).
+
+Il est ainsi possible de gérer le cache du Frontend depuis l'application Backend.
+
+=========== TYPES DE CACHE ===========
+Chaque balise <cache> représente un type de cache (Data, Views etc.), ces types de cache sont chargés dans Application::getController.php.
+
+Il serait facile de créer d'autres types de cache en rajoutant un nouveau bloc <cache> dans la configuration et en créant le fichier correspondant dans lib/vendors/CacheHandler/.
+
+La balise <cache> requiert les attributs suivants :
+- name (string) : le nom de ce type de cache. La classe gérant ce type de cache doit avoir le même nom et le suffixe "CacheHandler".
+- path (string) : le chemin (relatif) du dossier où seront stockés les fichiers de ce type de cache. Si le dossier n'existe pas il sera créé lors du stockage du premier fichier.
+- file-extension (string) : le type des fichiers de cache pour ce type de cache.
+
+La balise <cache> accepte les attributs optionnels suivants :
+- serialize-cache (bool) : détermine si les données doivent être sérialisées avant d'être sauvegardées dans le fichier de cache.
+  Valeur par défaut : false
+- prefix-key-with-app-name : détermine si l'on doit préfixer les clés et noms de fichiers des types d'éléments cachables avec le nom de l'application pour laquelle ce cache est défini.
+  Valeur par défaut : false
+
+=========== TYPES D'ÉLÉMENTS CACHABLES ===========
+Toute balise imbriquée dans une balise <cache> est considérée comme un type d'élément cachable par ce type de contenu, le nom de la balise n'a donc pas d'importance. Pour l'exemple, j'utiliserai <element>.
+
+Tous les éléments contenus dans une balise <cache> sont chargés lors de l'instanciation de la classe gérant le type de cache correspondant.
+
+Tous les attributs préfixés avec "data-" constitueront la clé de ce type d'élément cachable, qui permettra ensuite de manipuler le contenu du cache en question.
+
+Exemple : la clé de type d'élément cachable d'une vue sera <nomdelapplication>(du fait du paramètre "prefix-key-with-app-name")_<data-module>_<data-view>, soit Frontend_News_index pour l'accueil du site.
+
+La balise <element> requiert les attributs suivants :
+- au moins un champ data- pour déterminer la clé de ce type de cache. Suivant le type de cache, des attributs data spécifiques sont requis :
+-> data-type (string) pour le cache données : correspond au nom exact de l'entité que l'on souhaite mettre en cache
+-> data-module (string), data-view (string) pour le cache vues : correspond aux variables du même nom dans le reste du code de l'application
+- duration (string) : une chaîne de caractères respectant la syntaxe des formats relatifs (http://fr2.php.net/manual/fr/datetime.formats.relative.php) qui détermine la durée de validité du cache pour cet élément.
+  La durée de validité de chaque élément peut-être différente.
+
+La balise <element> accepte les attributs optionnels suivants :
+- requires-id (bool) : détermine si cet élément requiert un identifiant pour la gestion du cache. Par exemple, la vue de l'accueil du site n'en requiert pas.
+  Valeur par défaut : false
+- name-for-files (string) : change le format du nom de fichier pour cet élément si nécessaire. Si cet attribut n'est pas spécifié, le nom de fichier commence par la clé de ce type de cache (voir ci-dessus).
+  Exemple : pour plus de lisibité, les fichiers de cache des commentaires d'une news commencent par "Comments_Of_News [...]" au lieu de "Comment [...]",
+    car un fichier contient toute la liste des commentaires liés à une news.
+
+-->
+<caches>
+  <cache name="Data" path="tmp/cache/datas/" file-extension="txt" serialize-cache="true">
+    <element data-type="News" duration="1 month" requires-id="true" />
+    <element data-type="Comment" duration="2 days" requires-id="true" name-for-files="Comments_Of_News" />
+  </cache>
+  <cache name="Views" path="tmp/cache/views/" file-extension="html" prefix-key-with-app-name="true">
+    <element data-module="News" data-view="index" duration="1 hour" />
+
+    <!-- Exemple de mise en cache d'une vue de news spécifique, vous pouvez décommenter la ligne pour tester :-) -->
+    <!--<element data-module="News" data-view="show" duration="tomorrow" requires-id="true" />-->
+  </cache>
+</caches>

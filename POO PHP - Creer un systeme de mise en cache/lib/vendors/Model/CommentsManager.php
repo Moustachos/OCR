@@ -64,4 +64,11 @@ abstract class CommentsManager extends Manager
    * @return Comment
    */
   abstract public function get($id);
+
+  /**
+   * Méthode permettant d'obtenir l'identifiant de la news liée à un commentaire spécifique.
+   * @param $id L'identifiant du commentaire
+   * @return int
+   */
+  abstract public function getNewsId($id);
 }

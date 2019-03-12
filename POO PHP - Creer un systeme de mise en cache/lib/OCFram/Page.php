@@ -28,11 +28,27 @@ class Page extends ApplicationComponent
     extract($this->vars);
 
     ob_start();
-      require $this->contentFile;
+    require $this->contentFile;
     $content = ob_get_clean();
 
+    // cette vue peut-être mise en cache: on l'enregistre
+    if ($this->app->currentViewCacheable())
+    {
+      $viewType = implode(CacheHandler::SEPARATOR_KEY_OR_FILE, [$this->app->matchedRoute()->module(), $this->app->matchedRoute()->action()]);
+
+      if ($handler = $this->app->getCacheHandlerOf('Views', $viewType, true))
+      {
+        $ids = array_values($this->app->matchedRoute()->vars());
+
+        // si le titre de la page est disponible, on le stocke pour pouvoir l'afficher lors du chargement de la vue en cache
+        $cache = isset($title) ? [$content, $title] : $content;
+        $handler->createCache($cache, $ids);
+      }
+    }
+
+    // récupère le layout de l'application et envoie la page au visiteur
     ob_start();
-      require __DIR__.'/../../App/'.$this->app->name().'/Templates/layout.php';
+    require $this->app->getApplicationLayout();
     return ob_get_clean();
   }
 

@@ -26,12 +26,10 @@ class HTTPResponse extends ApplicationComponent
     $this->send();
   }
   
-  public function send()
+  public function send($cachedView = null)
   {
-    // Actuellement, cette ligne a peu de sens dans votre esprit.
-    // Promis, vous saurez vraiment ce qu'elle fait d'ici la fin du chapitre
-    // (bien que je suis sûr que les noms choisis sont assez explicites !).
-    exit($this->page->getGeneratedPage());
+    // si une vue en cache est disponible: on l'affiche, sinon on affiche la page habituelle
+    exit(!is_null($cachedView) ? $cachedView : $this->page->getGeneratedPage());
   }
 
   public function setPage(Page $page)
